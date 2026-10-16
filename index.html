@@ -130,52 +130,79 @@
       shops.unshift(newShop);
       saveShops();
 
-      // 등록 즉시 파싱 수행
-      await fetchShopData(newShop);
-      saveShops();
+// 웹 스크래핑 (카페24 지연로딩 및 og:image 완벽 대응)
+async function fetchShopData(shop) {
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(shop.url)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) return;
+    const html = await res.text();
+    
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    
+    // 1. 쇼핑몰 타이틀 추출
+    const title = doc.querySelector('title')?.innerText.split(/[-:|]/)[0].trim();
+    if (title) shop.name = title;
+
+    const extracted = [];
+
+    // 2. [폴백 대비] 대표 오픈그래프 이미지(og:image) 우선 확인
+    const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+    if (ogImage && !ogImage.toLowerCase().includes('logo') && !ogImage.toLowerCase().includes('icon')) {
+      let ogUrl = ogImage;
+      if (ogUrl.startsWith('//')) ogUrl = 'https:' + ogUrl;
+      else if (!ogUrl.startsWith('http')) ogUrl = new URL(ogUrl, shop.url).href;
+      extracted.push(ogUrl);
     }
 
-    // 웹 스크래핑 (무료 CORS 오픈 프록시 활용)
-    async function fetchShopData(shop) {
-      try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(shop.url)}`;
-        const res = await fetch(proxyUrl);
-        if (!res.ok) return;
-        const html = await res.text();
-        
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        
-        // 쇼핑몰 타이틀
-        const title = doc.querySelector('title')?.innerText.split(/[-:|]/)[0].trim();
-        if (title) shop.name = title;
+    // 3. 상품 이미지 추출 (ec-data-src, data-original 등 카페24/고도몰 속성 지원)
+    const imgs = Array.from(doc.querySelectorAll('img'));
 
-        // 이미지 4개 추출
-        const imgs = Array.from(doc.querySelectorAll('img'));
-        const extracted = [];
+    for (const img of imgs) {
+      // 카페24 전용 속성(ec-data-src) 및 일반 지연로딩 속성 순차적 탐색
+      let src = img.getAttribute('ec-data-src') ||
+                img.getAttribute('data-original') ||
+                img.getAttribute('data-src') ||
+                img.getAttribute('data-lazy-src') ||
+                img.getAttribute('src');
 
-        for (const img of imgs) {
-          let src = img.getAttribute('src') || img.getAttribute('data-src');
-          if (!src) continue;
-          if (!src.startsWith('http')) src = new URL(src, shop.url).href;
+      if (!src || src.trim() === '') continue;
 
-          const lower = src.toLowerCase();
-          if (!lower.includes('logo') && !lower.includes('icon') && !lower.includes('banner') && !lower.includes('.gif')) {
-            if (!extracted.includes(src)) extracted.push(src);
-          }
-          if (extracted.length >= 4) break;
-        }
-
-        // 신상품 판별
-        if (extracted.length > 0) {
-          if (shop.images.length > 0 && shop.images[0] !== extracted[0]) {
-            shop.hasNew = true;
-          }
-          shop.images = extracted;
-        }
-      } catch (e) {
-        console.error('파싱 실패:', e);
+      // 프로토콜 생략형(//) 및 상대경로(/) 처리
+      if (src.startsWith('//')) {
+        src = 'https:' + src;
+      } else if (!src.startsWith('http')) {
+        src = new URL(src, shop.url).href;
       }
+
+      const lower = src.toLowerCase();
+
+      // 불필요한 투명 픽셀(pixel.gif), 로고, 아이콘, 시스템 배너 필터링
+      const isJunk = lower.includes('pixel.gif') ||
+                     lower.includes('blank.gif') ||
+                     lower.includes('btn_') ||
+                     lower.includes('icon') ||
+                     lower.includes('logo') ||
+                     lower.includes('common/ico');
+
+      if (!isJunk && !extracted.includes(src)) {
+        extracted.push(src);
+      }
+
+      if (extracted.length >= 4) break;
     }
+
+    // 4. 신상품 판별 및 저장
+    if (extracted.length > 0) {
+      if (shop.images.length > 0 && shop.images[0] !== extracted[0]) {
+        shop.hasNew = true;
+      }
+      shop.images = extracted;
+    }
+  } catch (e) {
+    console.error('파싱 실패:', e);
+  }
+}
 
     // 백그라운드 갱신
     async function refreshShopsInBackground() {
