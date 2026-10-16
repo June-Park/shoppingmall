@@ -7,6 +7,7 @@
   
   <!-- PWA & Meta Tags -->
   <meta name="theme-color" content="#14532d">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="StylePick">
@@ -235,7 +236,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Parallel Icon Actions (Refresh & Delete) */
     .card-actions {
       display: flex;
       align-items: center;
@@ -298,7 +298,6 @@
       color: #94a3b8;
     }
 
-    /* Card Bottom Bar: [프리뷰] Button only */
     .card-bottom {
       display: flex;
       align-items: center;
@@ -670,9 +669,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <main class="content-area" id="mallListContainer">
-      <!-- Mall cards rendered dynamically by JS -->
-    </main>
+    <main class="content-area" id="mallListContainer"></main>
 
     <!-- Floating Action Button -->
     <button class="fab-add" id="btnFabAdd">
@@ -700,9 +697,7 @@
 
       <!-- Carousel -->
       <div class="carousel-container">
-        <div class="carousel-track" id="carouselTrack">
-          <!-- Slide images rendered dynamically -->
-        </div>
+        <div class="carousel-track" id="carouselTrack"></div>
         <button class="carousel-nav-btn prev" id="btnCarouselPrev">
           <i data-lucide="chevron-left" style="width: 20px; height: 20px;"></i>
         </button>
@@ -714,7 +709,7 @@
       <!-- Dot Indicators -->
       <div class="carousel-dots" id="carouselDots"></div>
 
-      <!-- Action Button: Naver In-App Browser Deep Link -->
+      <!-- Naver In-App Browser Deep Link Button -->
       <button class="btn-naver-open" id="btnOpenNaverApp">
         <i data-lucide="external-link" class="icon-lime" style="width: 18px; height: 18px;"></i>
         네이버 앱으로 쇼핑몰 이동하기
@@ -738,7 +733,7 @@
       <form id="formAddMall">
         <div class="form-group">
           <label for="inputMallUrl">쇼핑몰 URL *</label>
-          <input type="url" id="inputMallUrl" class="form-control" placeholder="https://smartstore.naver.com/..." required>
+          <input type="text" id="inputMallUrl" class="form-control" placeholder="예: nevy.co.kr 또는 https://..." required>
         </div>
         <div class="form-group">
           <label for="inputMallTitle">쇼핑몰 이름 (선택사항)</label>
@@ -780,77 +775,15 @@
         ],
         hasNew: false,
         lastKnownFirstImageUrl: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&q=80'
-      },
-      {
-        id: 'preset_imvely',
-        title: '임블리 (IMVELY)',
-        url: 'https://www.imvely.com',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80',
-          'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&q=80',
-          'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=600&q=80',
-          'https://images.unsplash.com/photo-1524041255072-7da0525d6b34?w=600&q=80'
-        ],
-        hasNew: true,
-        lastKnownFirstImageUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80'
       }
     ];
 
     const STORAGE_KEY = 'stylepick_malls_pwa_v1';
 
-    // State
     let malls = [];
     let currentPreviewMall = null;
     let currentSlideIndex = 0;
 
-<<<<<<< Updated upstream
-      shops.unshift(newShop);
-      saveShops();
-
-// 웹 스크래핑 (카페24 지연로딩 및 og:image 완벽 대응)
-async function fetchShopData(shop) {
-  try {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(shop.url)}`;
-    const res = await fetch(proxyUrl);
-    if (!res.ok) return;
-    const html = await res.text();
-    
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    
-    // 1. 쇼핑몰 타이틀 추출
-    const title = doc.querySelector('title')?.innerText.split(/[-:|]/)[0].trim();
-    if (title) shop.name = title;
-
-    const extracted = [];
-
-    // 2. [폴백 대비] 대표 오픈그래프 이미지(og:image) 우선 확인
-    const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
-    if (ogImage && !ogImage.toLowerCase().includes('logo') && !ogImage.toLowerCase().includes('icon')) {
-      let ogUrl = ogImage;
-      if (ogUrl.startsWith('//')) ogUrl = 'https:' + ogUrl;
-      else if (!ogUrl.startsWith('http')) ogUrl = new URL(ogUrl, shop.url).href;
-      extracted.push(ogUrl);
-    }
-
-    // 3. 상품 이미지 추출 (ec-data-src, data-original 등 카페24/고도몰 속성 지원)
-    const imgs = Array.from(doc.querySelectorAll('img'));
-
-    for (const img of imgs) {
-      // 카페24 전용 속성(ec-data-src) 및 일반 지연로딩 속성 순차적 탐색
-      let src = img.getAttribute('ec-data-src') ||
-                img.getAttribute('data-original') ||
-                img.getAttribute('data-src') ||
-                img.getAttribute('data-lazy-src') ||
-                img.getAttribute('src');
-
-      if (!src || src.trim() === '') continue;
-
-      // 프로토콜 생략형(//) 및 상대경로(/) 처리
-      if (src.startsWith('//')) {
-        src = 'https:' + src;
-      } else if (!src.startsWith('http')) {
-        src = new URL(src, shop.url).href;
-=======
     // --- 2. Local Storage Service ---
     function loadMalls() {
       try {
@@ -873,55 +806,17 @@ async function fetchShopData(shop) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
       } catch (e) {
         console.error('Failed to save localStorage', e);
->>>>>>> Stashed changes
       }
-
-      const lower = src.toLowerCase();
-
-      // 불필요한 투명 픽셀(pixel.gif), 로고, 아이콘, 시스템 배너 필터링
-      const isJunk = lower.includes('pixel.gif') ||
-                     lower.includes('blank.gif') ||
-                     lower.includes('btn_') ||
-                     lower.includes('icon') ||
-                     lower.includes('logo') ||
-                     lower.includes('common/ico');
-
-      if (!isJunk && !extracted.includes(src)) {
-        extracted.push(src);
-      }
-
-      if (extracted.length >= 4) break;
     }
 
-<<<<<<< Updated upstream
-    // 4. 신상품 판별 및 저장
-    if (extracted.length > 0) {
-      if (shop.images.length > 0 && shop.images[0] !== extracted[0]) {
-        shop.hasNew = true;
-      }
-      shop.images = extracted;
-    }
-  } catch (e) {
-    console.error('파싱 실패:', e);
-  }
-}
-
-    // 백그라운드 갱신
-    async function refreshShopsInBackground() {
-      for (const shop of shops) {
-        await fetchShopData(shop);
-=======
-    // --- 3. Client Web Scraping with CORS Fallback ---
+    // --- 3. Client Web Scraping with Cafe24 & Og:image Support ---
     async function scrapeMall(targetUrl) {
-      // Clean and normalize targetUrl
       let rawUrl = targetUrl.trim();
       if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
         rawUrl = 'https://' + rawUrl;
->>>>>>> Stashed changes
       }
       const parsedUri = new URL(rawUrl);
 
-      // Support proxy for client-side HTML fetch
       const proxies = [
         (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
         (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
@@ -938,16 +833,10 @@ async function fetchShopData(shop) {
         } catch (_) {}
       }
 
-      // If fetch completely fails or blocked, return fallback
       if (!html) {
         return {
           title: parsedUri.hostname.replace('www.', ''),
-          imageUrls: [
-            'https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80',
-            'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80',
-            'https://images.unsplash.com/photo-1472805565847-393e41efec9c?w=600&q=80',
-            'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80'
-          ]
+          imageUrls: []
         };
       }
 
@@ -961,7 +850,7 @@ async function fetchShopData(shop) {
       const docTitle = doc.querySelector('title')?.textContent;
 
       title = ogTitle || twitterTitle || docTitle || parsedUri.hostname.replace('www.', '');
-      title = title.replace(/( : 네이버 쇼핑| - 스마트스토어| \| 스마트스토어| - 공식 온라인 스토어| 공식 온라인 스토어| - 쇼핑몰)/g, '').trim();
+      title = title.split(/[-:|]/)[0].replace(/( : 네이버 쇼핑| - 스마트스토어| \| 스마트스토어| - 공식 온라인 스토어| 공식 온라인 스토어| - 쇼핑몰)/g, '').trim();
 
       // Image extraction
       const extractedImages = [];
@@ -977,18 +866,24 @@ async function fetchShopData(shop) {
         } catch (_) {}
       };
 
+      // 1. Check og:image
       const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
       tryAdd(ogImage);
 
-      // E-commerce image selectors
-      const imgs = doc.querySelectorAll('a[href*="/product/"] img, ul.prdList img, .thumbnail img, img');
+      // 2. Comprehensive image extraction (Supporting Cafe24 ec-data-src, data-original, lazy loading)
+      const imgs = doc.querySelectorAll('img');
       for (const img of imgs) {
         if (extractedImages.length >= 8) break;
-        tryAdd(img.getAttribute('data-src') || img.getAttribute('data-original') || img.getAttribute('src'));
+        const candidateSrc = img.getAttribute('ec-data-src') ||
+                             img.getAttribute('data-original') ||
+                             img.getAttribute('data-src') ||
+                             img.getAttribute('data-lazy-src') ||
+                             img.getAttribute('src');
+        tryAdd(candidateSrc);
       }
 
       // Prioritize product images
-      extractedImages.sort((a, b) => (b.includes('/product/') ? 1 : 0) - (a.includes('/product/') ? 1 : 0));
+      extractedImages.sort((a, b) => (b.includes('/product/') || b.includes('prd') ? 1 : 0) - (a.includes('/product/') || a.includes('prd') ? 1 : 0));
 
       return {
         title: title || '쇼핑몰',
@@ -1000,20 +895,19 @@ async function fetchShopData(shop) {
       const lower = url.toLowerCase();
       if (!lower.startsWith('http://') && !lower.startsWith('https://')) return false;
       if (lower.endsWith('.svg') || lower.endsWith('.ico')) return false;
-      const blacklist = ['favicon', 'pixel', 'tracker', 'spacer', 'blank.gif', 'btn_', 'button', 'badge', 'ico_', 'spinner', 'loading'];
+      const blacklist = ['favicon', 'pixel.gif', 'blank.gif', 'tracker', 'spacer', 'btn_', 'button', 'badge', 'ico_', 'spinner', 'loading', 'common/ico'];
       return !blacklist.some(term => lower.includes(term));
     }
 
     // --- 4. Deep Linking to Naver App ---
     function openMallInNaverApp(url) {
-      const cleanUrl = url.trim();
+      const cleanUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
       const encodedUrl = encodeURIComponent(cleanUrl);
       const naverAppScheme = `naversearchapp://inappbrowser?url=${encodedUrl}&target=new&version=6`;
 
       const startTime = Date.now();
       window.location.href = naverAppScheme;
 
-      // Fallback to standard new window if Naver app doesn't take over within 1.5s
       setTimeout(() => {
         if (Date.now() - startTime < 2000) {
           window.open(cleanUrl, '_blank');
@@ -1070,7 +964,6 @@ async function fetchShopData(shop) {
 
         return `
           <div class="mall-card ${mall.hasNew ? 'has-new' : ''}" onclick="handleCardClick(event, ${index})">
-            <!-- Header: NEW badge, Title, Parallel Action Icons -->
             <div class="card-header">
               <div class="card-info">
                 ${mall.hasNew ? '<span class="badge-new">NEW</span>' : ''}
@@ -1089,12 +982,10 @@ async function fetchShopData(shop) {
               </div>
             </div>
 
-            <!-- 4 Thumbnail Images -->
             <div class="thumbnails-grid">
               ${imagesHtml}
             </div>
 
-            <!-- Bottom: [프리뷰] button only (reverted to original clean outline style) -->
             <div class="card-bottom">
               <button class="btn-preview" onclick="handlePreviewClick(event, ${index})">
                 <i data-lucide="eye" style="width: 15px; height: 15px;"></i>
@@ -1308,7 +1199,7 @@ async function fetchShopData(shop) {
         const scrapeResult = await scrapeMall(urlInput);
         const newMall = {
           id: 'mall_' + Date.now(),
-          title: customTitle || scrapeResult.title || new URL(urlInput).hostname,
+          title: customTitle || scrapeResult.title || new URL(urlInput.startsWith('http') ? urlInput : 'https://' + urlInput).hostname,
           url: urlInput,
           imageUrls: scrapeResult.imageUrls,
           hasNew: true,
