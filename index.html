@@ -809,7 +809,7 @@
       }
     }
 
-    // --- 3. Client Web Scraping with Cafe24 & Og:image Support ---
+// --- 3. Client Web Scraping (개선 버전) ---
     async function scrapeMall(targetUrl) {
       let rawUrl = targetUrl.trim();
       if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
@@ -817,18 +817,24 @@
       }
       const parsedUri = new URL(rawUrl);
 
+      // 차단 방지를 위한 다중 프록시 풀 (순차 시도)
       const proxies = [
         (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-        (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
+        (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
       ];
 
       let html = '';
       for (const proxyFn of proxies) {
         try {
-          const res = await fetch(proxyFn(rawUrl), { signal: AbortSignal.timeout(8000) });
+          const res = await fetch(proxyFn(rawUrl), { 
+            headers: { 'Accept': 'text/html' },
+            signal: AbortSignal.timeout(6000) 
+          });
           if (res.ok) {
             html = await res.text();
-            if (html && html.length > 500) break;
+            // 유의미한 HTML 내용이 왔는지 검증
+            if (html && html.includes('<') && html.length > 800) break;
           }
         } catch (_) {}
       }
@@ -843,52 +849,97 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
-      // Title extraction
+      // 1. 쇼핑몰 타이틀 추출
       let title = '';
       const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
-      const twitterTitle = doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content');
       const docTitle = doc.querySelector('title')?.textContent;
+      title = ogTitle || docTitle || parsedUri.hostname.replace('www.', '');
+      title = title.split(/[-:|]/)[0]
+                   .replace(/(네이버 쇼핑|스마트스토어|공식 온라인 스토어|쇼핑몰|공식몰)/g, '')
+                   .trim();
 
-      title = ogTitle || twitterTitle || docTitle || parsedUri.hostname.replace('www.', '');
-      title = title.split(/[-:|]/)[0].replace(/( : 네이버 쇼핑| - 스마트스토어| \| 스마트스토어| - 공식 온라인 스토어| 공식 온라인 스토어| - 쇼핑몰)/g, '').trim();
+      // 2. 이미지 수집 풀 (우선순위 분리)
+      const productImages = [];
+      const generalImages = [];
 
-      // Image extraction
-      const extractedImages = [];
       const tryAdd = (src) => {
         if (!src) return;
         src = src.trim();
         if (src.startsWith('//')) src = 'https:' + src;
         try {
           const resolved = new URL(src, rawUrl).href;
-          if (!extractedImages.includes(resolved) && isValidImage(resolved)) {
-            extractedImages.push(resolved);
+          if (!isValidImage(resolved)) return;
+
+          const lower = resolved.toLowerCase();
+          // 카페24/고도몰/메이크샵 대표 상품 이미지 경로 감지 (우선순위 1등)
+          const isProductPath = lower.includes('/product/medium/') || 
+                                lower.includes('/product/big/') || 
+                                lower.includes('/product/small/') || 
+                                lower.includes('/web/product/') ||
+                                lower.includes('/goods/') ||
+                                lower.includes('shop1');
+
+          if (isProductPath) {
+            if (!productImages.includes(resolved)) productImages.push(resolved);
+          } else {
+            if (!generalImages.includes(resolved)) generalImages.push(resolved);
           }
         } catch (_) {}
       };
 
-      // 1. Check og:image
-      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
-      tryAdd(ogImage);
+      // A. 상품 목록 전용 셀렉터 먼저 집중 탐색 (카페24, 메이크샵 표준)
+      const productSelectorImgs = doc.querySelectorAll(`
+        .prdList img, ul.grid img, .thumbnail img, [class*="product"] img, 
+        [id*="anchorBoxId_"] img, [class*="thumb"] img, .item img
+      `);
 
-      // 2. Comprehensive image extraction (Supporting Cafe24 ec-data-src, data-original, lazy loading)
-      const imgs = doc.querySelectorAll('img');
-      for (const img of imgs) {
-        if (extractedImages.length >= 8) break;
-        const candidateSrc = img.getAttribute('ec-data-src') ||
-                             img.getAttribute('data-original') ||
-                             img.getAttribute('data-src') ||
-                             img.getAttribute('data-lazy-src') ||
-                             img.getAttribute('src');
-        tryAdd(candidateSrc);
+      for (const img of productSelectorImgs) {
+        const src = img.getAttribute('ec-data-src') || 
+                    img.getAttribute('data-original') || 
+                    img.getAttribute('data-src') || 
+                    img.getAttribute('src');
+        tryAdd(src);
+        if (productImages.length >= 4) break;
       }
 
-      // Prioritize product images
-      extractedImages.sort((a, b) => (b.includes('/product/') || b.includes('prd') ? 1 : 0) - (a.includes('/product/') || a.includes('prd') ? 1 : 0));
+      // B. 4개가 아직 안 채워졌다면 전체 img 태그 순회
+      if (productImages.length < 4) {
+        const allImgs = doc.querySelectorAll('img');
+        for (const img of allImgs) {
+          const src = img.getAttribute('ec-data-src') || 
+                      img.getAttribute('data-original') || 
+                      img.getAttribute('data-src') || 
+                      img.getAttribute('src');
+          tryAdd(src);
+          if (productImages.length >= 4) break;
+        }
+      }
+
+      // C. 최종 4개 조합 (상품 이미지 우선, 부족하면 일반 이미지로 보충)
+      const finalImages = [...productImages, ...generalImages].slice(0, 4);
 
       return {
         title: title || '쇼핑몰',
-        imageUrls: extractedImages.slice(0, 4)
+        imageUrls: finalImages
       };
+    }
+
+    // 로고, 아이콘, 와이드 배너 강력 필터링
+    function isValidImage(url) {
+      const lower = url.toLowerCase();
+      if (!lower.startsWith('http://') && !lower.startsWith('https://')) return false;
+      if (lower.endsWith('.svg') || lower.endsWith('.ico')) return false;
+
+      // 98도씨 로고나 시스템 이미지 걸러내기
+      const blacklist = [
+        'favicon', 'pixel', 'blank.gif', 'tracker', 'spacer', 
+        'btn_', 'button', 'badge', 'ico_', 'spinner', 'loading', 
+        'common/ico', 'top_logo', 'header_logo', 'footer_logo',
+        'main_logo', 'symbol', 'mark', 'banner_top', 'app_banner',
+        'placeholder', 'unsplash'
+      ];
+
+      return !blacklist.some(term => lower.includes(term));
     }
 
     function isValidImage(url) {
