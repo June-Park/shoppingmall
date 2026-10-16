@@ -2,131 +2,808 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>스타일 픽</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>StylePick - 쇼핑몰 스타일 프리뷰</title>
   
-  <!-- 모바일 홈 화면 앱 설정 (PWA / Standalone) -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <!-- PWA & Meta Tags -->
+  <meta name="theme-color" content="#14532d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#ffffff">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+  <meta name="apple-mobile-web-app-title" content="StylePick">
+  <meta name="description" content="쇼핑몰 스타일 프리뷰 클라이언트 PWA 앱">
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; background: #f8f9fa; color: #1a1a1a; padding-bottom: 40px; }
-    
-    /* 상단 바 */
-    header { position: sticky; top: 0; background: #ffffff; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; z-index: 10; }
-    header h1 { font-size: 18px; font-weight: 700; }
-    header button { background: #111; color: #fff; border: none; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    :root {
+      --color-primary: #14532d;       /* Deep Forest Green */
+      --color-accent: #aff33e;        /* Bright Lime */
+      --color-text: #1e293b;          /* Slate 800 */
+      --color-text-sub: #64748b;      /* Slate 500 */
+      --color-danger: #991b1b;        /* Crimson Red (#991b1b) */
+      --color-naver: #03c75a;         /* Naver Brand Green */
+      --color-bg: #f1f5f9;            /* Slate 100 */
+      --color-card-bg: #ffffff;
+      --color-border: #e2e8f0;
+      --font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-    /* 쇼핑몰 리스트 */
-    main { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
-    .empty-state { text-align: center; color: #888; font-size: 14px; margin-top: 60px; line-height: 1.6; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-    /* 쇼핑몰 카드 */
-    .card { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #ebebeb; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
-    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .card-title-group { display: flex; align-items: center; gap: 6px; overflow: hidden; }
-    .card-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-    .badge-new { background: #ff3b30; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-    .btn-preview { background: none; border: none; color: #007aff; font-size: 13px; font-weight: 500; cursor: pointer; padding: 4px; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
 
-    /* 4장 썸네일 그리드 */
-    .image-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; cursor: pointer; }
-    .image-box { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; background: #f0f0f0; }
-    .image-box img { width: 100%; height: 100%; object-fit: cover; }
-    .no-images { grid-column: span 4; padding: 20px; text-align: center; font-size: 12px; color: #aaa; background: #fafafa; border-radius: 8px; }
+    /* Mobile Shell Container */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background-color: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 24px rgba(30, 41, 59, 0.08);
+    }
 
-    /* 프리뷰 팝업 모달 */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
-    .modal-content { background: #fff; width: 100%; max-width: 360px; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #eee; }
-    .modal-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; aspect-ratio: 3 / 4; background: #000; }
-    .modal-slider img { width: 100%; height: 100%; object-fit: contain; flex-shrink: 0; scroll-snap-align: start; }
-    .modal-footer { padding: 14px; }
-    .btn-naver { width: 100%; background: #03c75a; color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    /* App Bar Header */
+    header.app-bar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: #ffffff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon-wrap {
+      background-color: var(--color-accent);
+      color: var(--color-primary);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-text {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--color-text);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-sub);
+      margin-left: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-primary);
+      transition: background-color 0.15s;
+    }
+
+    .btn-icon:hover {
+      background-color: rgba(20, 83, 45, 0.08);
+    }
+
+    /* Status Banner */
+    .status-banner {
+      padding: 14px 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-count-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .badge-new-count {
+      background-color: var(--color-danger);
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .status-refreshing-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Main Scroll Area */
+    main.content-area {
+      flex: 1;
+      padding-bottom: 90px;
+    }
+
+    /* Mall Card */
+    .mall-card {
+      background: var(--color-card-bg);
+      margin: 8px 16px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 4px 14px rgba(30, 41, 59, 0.05);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      position: relative;
+    }
+
+    .mall-card.has-new {
+      border: 1.5px solid rgba(153, 27, 27, 0.4);
+    }
+
+    .mall-card:active {
+      transform: scale(0.99);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .badge-new {
+      background-color: var(--color-danger);
+      color: white;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 4px rgba(153, 27, 27, 0.3);
+      flex-shrink: 0;
+    }
+
+    .title-group {
+      overflow: hidden;
+    }
+
+    .mall-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mall-url {
+      font-size: 12px;
+      color: var(--color-text-sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Parallel Icon Actions (Refresh & Delete) */
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-action-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: background-color 0.15s;
+    }
+
+    .btn-action-icon.refresh {
+      color: var(--color-text);
+    }
+
+    .btn-action-icon.delete {
+      color: var(--color-danger);
+    }
+
+    .btn-action-icon:hover {
+      background-color: #f1f5f9;
+    }
+
+    /* 4 Thumbnails Grid */
+    .thumbnails-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .thumb-item {
+      height: 76px;
+      background-color: #f1f5f9;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thumb-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumb-item .placeholder-icon {
+      color: #94a3b8;
+    }
+
+    /* Card Bottom Bar: [프리뷰] Button only */
+    .card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .btn-preview {
+      background: none;
+      border: 1px solid #d1d6db;
+      color: #333d4b;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.15s, border-color 0.15s;
+    }
+
+    .btn-preview:hover {
+      background-color: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    /* Floating Action Button (+ 쇼핑몰 추가) */
+    .fab-add {
+      position: fixed;
+      bottom: 24px;
+      right: calc(50% - 240px + 16px);
+      background-color: var(--color-naver);
+      color: white;
+      border: none;
+      border-radius: 28px;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(3, 199, 90, 0.35);
+      cursor: pointer;
+      z-index: 50;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    @media (max-width: 480px) {
+      .fab-add {
+        right: 16px;
+      }
+    }
+
+    .fab-add:active {
+      transform: scale(0.96);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+    }
+
+    .empty-icon {
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+
+    .empty-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+
+    .empty-sub {
+      font-size: 13px;
+      color: var(--color-text-sub);
+      margin-bottom: 24px;
+    }
+
+    .btn-reset-presets {
+      background: white;
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Modal Sheet Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: white;
+      border-radius: 24px 24px 0 0;
+      padding: 16px 20px 28px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: #cbd5e1;
+      border-radius: 2px;
+      margin: 0 auto 12px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .modal-title-wrap {
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .modal-mall-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-page-counter {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-primary);
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .modal-mall-url {
+      font-size: 12px;
+      color: var(--color-text-sub);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Carousel PageView in Modal */
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: #f1f5f9;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .carousel-track {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.25s ease-out;
+    }
+
+    .carousel-slide {
+      min-width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .carousel-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.85);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 5;
+    }
+
+    .carousel-nav-btn.prev { left: 10px; }
+    .carousel-nav-btn.next { right: 10px; }
+
+    /* Carousel Dots */
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      background: #cbd5e1;
+      transition: width 0.2s, background-color 0.2s;
+    }
+
+    .dot.active {
+      width: 20px;
+      background-color: var(--color-primary);
+    }
+
+    /* Naver App Launch Button in Modal */
+    .btn-naver-open {
+      background-color: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-naver-open:active {
+      opacity: 0.9;
+    }
+
+    .btn-naver-open .icon-lime {
+      color: var(--color-accent);
+    }
+
+    /* Add Mall Dialog Modal */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .form-control:focus {
+      border-color: var(--color-primary);
+    }
+
+    .dialog-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .btn-dialog-cancel {
+      background: none;
+      border: none;
+      color: var(--color-text-sub);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .btn-dialog-submit {
+      background-color: var(--color-naver);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>내 쇼핑몰 스타일 픽</h1>
-    <button onclick="promptAddShop()">+ 링크 추가</button>
-  </header>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-bar">
+      <div class="brand-title">
+        <div class="brand-icon-wrap">
+          <i data-lucide="shirt" style="width: 18px; height: 18px;"></i>
+        </div>
+        <div>
+          <span class="brand-text">StylePick</span>
+          <span class="brand-sub">스타일 프리뷰</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" id="btnAddHeader" title="쇼핑몰 추가">
+          <i data-lucide="plus-circle" style="width: 22px; height: 22px;"></i>
+        </button>
+      </div>
+    </header>
 
-  <main id="shopList">
-    <div class="empty-state">저장된 쇼핑몰이 없습니다.<br>상단 [+ 링크 추가] 버튼을 눌러보세요.</div>
-  </main>
+    <!-- Status Banner -->
+    <div class="status-banner">
+      <div class="status-count-wrap">
+        <span>등록된 쇼핑몰 <span id="txtMallCount">0</span>개</span>
+        <span class="badge-new-count" id="badgeNewCount" style="display: none;">신상품 +0</span>
+      </div>
+      <div class="status-refreshing-text" id="statusRefreshing" style="display: none;">
+        <i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px;"></i>
+        최신 스타일 분석 중...
+      </div>
+    </div>
 
-  <!-- 프리뷰 모달 -->
-  <div id="previewModal" class="modal" onclick="closeModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
+    <!-- Main Content Area -->
+    <main class="content-area" id="mallListContainer">
+      <!-- Mall cards rendered dynamically by JS -->
+    </main>
+
+    <!-- Floating Action Button -->
+    <button class="fab-add" id="btnFabAdd">
+      <i data-lucide="plus" style="width: 20px; height: 20px;"></i>
+      쇼핑몰 추가
+    </button>
+  </div>
+
+  <!-- Preview Bottom Sheet Modal -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
       <div class="modal-header">
-        <h3 id="modalTitle" style="font-size: 16px;">프리뷰</h3>
-        <button style="background:none; border:none; font-size:18px; cursor:pointer;" onclick="closeModal()">✕</button>
+        <div class="modal-title-wrap">
+          <div class="modal-mall-title">
+            <span id="modalMallTitle">쇼핑몰</span>
+            <span class="modal-page-counter" id="modalPageCounter">1 / 4</span>
+          </div>
+          <div class="modal-mall-url" id="modalMallUrl">https://...</div>
+        </div>
+        <button class="btn-icon" id="btnClosePreview">
+          <i data-lucide="x" style="width: 22px; height: 22px;"></i>
+        </button>
       </div>
-      <div class="modal-slider" id="modalSlider"></div>
-      <div class="modal-footer">
-        <button class="btn-naver" id="modalNaverBtn">네이버 앱으로 쇼핑몰 열기</button>
+
+      <!-- Carousel -->
+      <div class="carousel-container">
+        <div class="carousel-track" id="carouselTrack">
+          <!-- Slide images rendered dynamically -->
+        </div>
+        <button class="carousel-nav-btn prev" id="btnCarouselPrev">
+          <i data-lucide="chevron-left" style="width: 20px; height: 20px;"></i>
+        </button>
+        <button class="carousel-nav-btn next" id="btnCarouselNext">
+          <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
+        </button>
       </div>
+
+      <!-- Dot Indicators -->
+      <div class="carousel-dots" id="carouselDots"></div>
+
+      <!-- Action Button: Naver In-App Browser Deep Link -->
+      <button class="btn-naver-open" id="btnOpenNaverApp">
+        <i data-lucide="external-link" class="icon-lime" style="width: 18px; height: 18px;"></i>
+        네이버 앱으로 쇼핑몰 이동하기
+      </button>
+    </div>
+  </div>
+
+  <!-- Add Mall Modal Dialog -->
+  <div class="modal-overlay" id="addMallModal">
+    <div class="modal-sheet" style="padding-bottom: 24px;">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--color-text);">새 쇼핑몰 추가</h3>
+        <button class="btn-icon" id="btnCloseAddModal">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      <p style="font-size: 13px; color: var(--color-text-sub); margin-bottom: 16px;">
+        관심있는 쇼핑몰 URL을 입력하면 자동으로 최신 스타일과 이미지를 분석합니다.
+      </p>
+      <form id="formAddMall">
+        <div class="form-group">
+          <label for="inputMallUrl">쇼핑몰 URL *</label>
+          <input type="url" id="inputMallUrl" class="form-control" placeholder="https://smartstore.naver.com/..." required>
+        </div>
+        <div class="form-group">
+          <label for="inputMallTitle">쇼핑몰 이름 (선택사항)</label>
+          <input type="text" id="inputMallTitle" class="form-control" placeholder="비워두면 웹페이지에서 자동 추출">
+        </div>
+        <div class="dialog-buttons">
+          <button type="button" class="btn-dialog-cancel" id="btnCancelAdd">취소</button>
+          <button type="submit" class="btn-dialog-submit" id="btnSubmitAdd">추가하기</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
-    const STORAGE_KEY = 'style_pick_shops';
-    let shops = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-
-    // 초기 렌더링 및 백그라운드 갱신
-    document.addEventListener('DOMContentLoaded', () => {
-      renderShops();
-      refreshShopsInBackground();
-    });
-
-    function saveShops() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(shops));
-      renderShops();
-    }
-
-    // 네이버 앱 딥링크 호출 (미설치 시 일반 브라우저)
-    function openNaver(url, shopId) {
-      if (shopId) clearNewBadge(shopId);
-      const clean = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
-      const naverAppUrl = `naversearchapp://inappbrowser?url=${encodeURIComponent(clean)}&target=new&version=6`;
-      
-      // 모바일 네이버 앱 호출 시도 후  fallback
-      const start = Date.now();
-      window.location.href = naverAppUrl;
-      setTimeout(() => {
-        if (Date.now() - start < 1500) {
-          window.location.href = clean;
-        }
-      }, 800);
-    }
-
-    function clearNewBadge(id) {
-      const target = shops.find(s => s.id === id);
-      if (target && target.hasNew) {
-        target.hasNew = false;
-        saveShops();
+    // --- 1. Preset Default Shopping Malls ---
+    const DEFAULT_PRESETS = [
+      {
+        id: 'preset_slowand',
+        title: '슬로우앤드 (Slowand)',
+        url: 'https://www.slowand.com',
+        imageUrls: [
+          'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&q=80',
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
+          'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80',
+          'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80'
+        ],
+        hasNew: true,
+        lastKnownFirstImageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&q=80'
+      },
+      {
+        id: 'preset_98doci',
+        title: '98도씨 (98doci)',
+        url: 'https://www.98doci.com',
+        imageUrls: [
+          'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&q=80',
+          'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&q=80',
+          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600&q=80',
+          'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=600&q=80'
+        ],
+        hasNew: false,
+        lastKnownFirstImageUrl: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&q=80'
+      },
+      {
+        id: 'preset_imvely',
+        title: '임블리 (IMVELY)',
+        url: 'https://www.imvely.com',
+        imageUrls: [
+          'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80',
+          'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&q=80',
+          'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=600&q=80',
+          'https://images.unsplash.com/photo-1524041255072-7da0525d6b34?w=600&q=80'
+        ],
+        hasNew: true,
+        lastKnownFirstImageUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80'
       }
-    }
+    ];
 
-    // 쇼핑몰 추가
-    async function promptAddShop() {
-      const url = prompt('쇼핑몰 링크(URL)를 입력해 주세요:');
-      if (!url) return;
+    const STORAGE_KEY = 'stylepick_malls_pwa_v1';
 
-      const cleanUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
-      const newShop = {
-        id: Date.now().toString(),
-        name: new URL(cleanUrl).hostname,
-        url: cleanUrl,
-        images: [],
-        hasNew: false
-      };
+    // State
+    let malls = [];
+    let currentPreviewMall = null;
+    let currentSlideIndex = 0;
 
+<<<<<<< Updated upstream
       shops.unshift(newShop);
       saveShops();
 
@@ -173,6 +850,30 @@ async function fetchShopData(shop) {
         src = 'https:' + src;
       } else if (!src.startsWith('http')) {
         src = new URL(src, shop.url).href;
+=======
+    // --- 2. Local Storage Service ---
+    function loadMalls() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load localStorage', e);
+      }
+      saveMalls(DEFAULT_PRESETS);
+      return [...DEFAULT_PRESETS];
+    }
+
+    function saveMalls(list) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      } catch (e) {
+        console.error('Failed to save localStorage', e);
+>>>>>>> Stashed changes
       }
 
       const lower = src.toLowerCase();
@@ -192,6 +893,7 @@ async function fetchShopData(shop) {
       if (extracted.length >= 4) break;
     }
 
+<<<<<<< Updated upstream
     // 4. 신상품 판별 및 저장
     if (extracted.length > 0) {
       if (shop.images.length > 0 && shop.images[0] !== extracted[0]) {
@@ -208,63 +910,458 @@ async function fetchShopData(shop) {
     async function refreshShopsInBackground() {
       for (const shop of shops) {
         await fetchShopData(shop);
+=======
+    // --- 3. Client Web Scraping with CORS Fallback ---
+    async function scrapeMall(targetUrl) {
+      // Clean and normalize targetUrl
+      let rawUrl = targetUrl.trim();
+      if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+        rawUrl = 'https://' + rawUrl;
+>>>>>>> Stashed changes
       }
-      saveShops();
+      const parsedUri = new URL(rawUrl);
+
+      // Support proxy for client-side HTML fetch
+      const proxies = [
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
+      ];
+
+      let html = '';
+      for (const proxyFn of proxies) {
+        try {
+          const res = await fetch(proxyFn(rawUrl), { signal: AbortSignal.timeout(8000) });
+          if (res.ok) {
+            html = await res.text();
+            if (html && html.length > 500) break;
+          }
+        } catch (_) {}
+      }
+
+      // If fetch completely fails or blocked, return fallback
+      if (!html) {
+        return {
+          title: parsedUri.hostname.replace('www.', ''),
+          imageUrls: [
+            'https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80',
+            'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80',
+            'https://images.unsplash.com/photo-1472805565847-393e41efec9c?w=600&q=80',
+            'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80'
+          ]
+        };
+      }
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // Title extraction
+      let title = '';
+      const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
+      const twitterTitle = doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content');
+      const docTitle = doc.querySelector('title')?.textContent;
+
+      title = ogTitle || twitterTitle || docTitle || parsedUri.hostname.replace('www.', '');
+      title = title.replace(/( : 네이버 쇼핑| - 스마트스토어| \| 스마트스토어| - 공식 온라인 스토어| 공식 온라인 스토어| - 쇼핑몰)/g, '').trim();
+
+      // Image extraction
+      const extractedImages = [];
+      const tryAdd = (src) => {
+        if (!src) return;
+        src = src.trim();
+        if (src.startsWith('//')) src = 'https:' + src;
+        try {
+          const resolved = new URL(src, rawUrl).href;
+          if (!extractedImages.includes(resolved) && isValidImage(resolved)) {
+            extractedImages.push(resolved);
+          }
+        } catch (_) {}
+      };
+
+      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+      tryAdd(ogImage);
+
+      // E-commerce image selectors
+      const imgs = doc.querySelectorAll('a[href*="/product/"] img, ul.prdList img, .thumbnail img, img');
+      for (const img of imgs) {
+        if (extractedImages.length >= 8) break;
+        tryAdd(img.getAttribute('data-src') || img.getAttribute('data-original') || img.getAttribute('src'));
+      }
+
+      // Prioritize product images
+      extractedImages.sort((a, b) => (b.includes('/product/') ? 1 : 0) - (a.includes('/product/') ? 1 : 0));
+
+      return {
+        title: title || '쇼핑몰',
+        imageUrls: extractedImages.slice(0, 4)
+      };
     }
 
-    // 메인 화면 렌더링
-    function renderShops() {
-      const container = document.getElementById('shopList');
-      if (shops.length === 0) {
-        container.innerHTML = '<div class="empty-state">저장된 쇼핑몰이 없습니다.<br>상단 [+ 링크 추가] 버튼을 눌러보세요.</div>';
+    function isValidImage(url) {
+      const lower = url.toLowerCase();
+      if (!lower.startsWith('http://') && !lower.startsWith('https://')) return false;
+      if (lower.endsWith('.svg') || lower.endsWith('.ico')) return false;
+      const blacklist = ['favicon', 'pixel', 'tracker', 'spacer', 'blank.gif', 'btn_', 'button', 'badge', 'ico_', 'spinner', 'loading'];
+      return !blacklist.some(term => lower.includes(term));
+    }
+
+    // --- 4. Deep Linking to Naver App ---
+    function openMallInNaverApp(url) {
+      const cleanUrl = url.trim();
+      const encodedUrl = encodeURIComponent(cleanUrl);
+      const naverAppScheme = `naversearchapp://inappbrowser?url=${encodedUrl}&target=new&version=6`;
+
+      const startTime = Date.now();
+      window.location.href = naverAppScheme;
+
+      // Fallback to standard new window if Naver app doesn't take over within 1.5s
+      setTimeout(() => {
+        if (Date.now() - startTime < 2000) {
+          window.open(cleanUrl, '_blank');
+        }
+      }, 1500);
+    }
+
+    // --- 5. Render Functions ---
+    function renderApp() {
+      const container = document.getElementById('mallListContainer');
+      const countEl = document.getElementById('txtMallCount');
+      const badgeNewCountEl = document.getElementById('badgeNewCount');
+
+      countEl.textContent = malls.length;
+
+      const newCount = malls.filter(m => m.hasNew).length;
+      if (newCount > 0) {
+        badgeNewCountEl.style.display = 'inline-block';
+        badgeNewCountEl.textContent = `신상품 +${newCount}`;
+      } else {
+        badgeNewCountEl.style.display = 'none';
+      }
+
+      if (malls.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i data-lucide="store" class="empty-icon" style="width: 56px; height: 56px; margin: 0 auto 12px; display: block;"></i>
+            <div class="empty-title">등록된 쇼핑몰이 없습니다.</div>
+            <div class="empty-sub">새로운 쇼핑몰을 추가하거나 추천 쇼핑몰을 불러와보세요.</div>
+            <button class="btn-reset-presets" onclick="resetToPresets()">기본 쇼핑몰 불러오기</button>
+          </div>
+        `;
+        lucide.createIcons();
         return;
       }
 
-      container.innerHTML = shops.map(shop => `
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title-group">
-              <span class="card-title">${shop.name}</span>
-              ${shop.hasNew ? '<span class="badge-new">NEW</span>' : ''}
+      container.innerHTML = malls.map((mall, index) => {
+        const imagesHtml = Array.from({ length: 4 }).map((_, i) => {
+          const imgUrl = mall.imageUrls && mall.imageUrls[i];
+          if (imgUrl) {
+            return `
+              <div class="thumb-item" onclick="handlePreviewClick(event, ${index})">
+                <img src="${imgUrl}" alt="상품 미리보기" onerror="this.parentElement.innerHTML='<i data-lucide=\\'image-off\\' style=\\'color:#94a3b8;width:20px;height:20px;\\'></i>'; lucide.createIcons();">
+              </div>
+            `;
+          } else {
+            return `
+              <div class="thumb-item" onclick="handlePreviewClick(event, ${index})">
+                <i data-lucide="image" class="placeholder-icon" style="width: 20px; height: 20px;"></i>
+              </div>
+            `;
+          }
+        }).join('');
+
+        return `
+          <div class="mall-card ${mall.hasNew ? 'has-new' : ''}" onclick="handleCardClick(event, ${index})">
+            <!-- Header: NEW badge, Title, Parallel Action Icons -->
+            <div class="card-header">
+              <div class="card-info">
+                ${mall.hasNew ? '<span class="badge-new">NEW</span>' : ''}
+                <div class="title-group">
+                  <div class="mall-title">${escapeHtml(mall.title)}</div>
+                  <div class="mall-url">${escapeHtml(mall.url)}</div>
+                </div>
+              </div>
+              <div class="card-actions" onclick="event.stopPropagation()">
+                <button class="btn-action-icon refresh" title="새로고침" onclick="handleRefreshMall(${index})">
+                  <i data-lucide="${mall.isLoading ? 'loader-2' : 'rotate-cw'}" class="${mall.isLoading ? 'spin' : ''}" style="width: 18px; height: 18px;"></i>
+                </button>
+                <button class="btn-action-icon delete" title="삭제" onclick="handleDeleteMall(${index})">
+                  <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+                </button>
+              </div>
             </div>
-            <button class="btn-preview" onclick="openPreview('${shop.id}')">프리뷰</button>
+
+            <!-- 4 Thumbnail Images -->
+            <div class="thumbnails-grid">
+              ${imagesHtml}
+            </div>
+
+            <!-- Bottom: [프리뷰] button only (reverted to original clean outline style) -->
+            <div class="card-bottom">
+              <button class="btn-preview" onclick="handlePreviewClick(event, ${index})">
+                <i data-lucide="eye" style="width: 15px; height: 15px;"></i>
+                [프리뷰]
+              </button>
+            </div>
           </div>
-          <div class="image-grid" onclick="openNaver('${shop.url}', '${shop.id}')">
-            ${shop.images.length > 0 
-              ? shop.images.map(img => `
-                  <div class="image-box">
-                    <img src="${img}" loading="lazy" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
-                  </div>
-                `).join('')
-              : '<div class="no-images">이미지를 불러오는 중이거나 없습니다 (터치 시 방문)</div>'
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // --- 6. Event Handlers ---
+    function handleCardClick(event, index) {
+      const mall = malls[index];
+      if (!mall) return;
+      if (mall.hasNew) {
+        mall.hasNew = false;
+        saveMalls(malls);
+        renderApp();
+      }
+      openMallInNaverApp(mall.url);
+    }
+
+    function handlePreviewClick(event, index) {
+      event.stopPropagation();
+      const mall = malls[index];
+      if (!mall) return;
+
+      if (mall.hasNew) {
+        mall.hasNew = false;
+        saveMalls(malls);
+        renderApp();
+      }
+      openPreviewModal(mall);
+    }
+
+    async function handleRefreshMall(index) {
+      const mall = malls[index];
+      if (!mall || mall.isLoading) return;
+
+      mall.isLoading = true;
+      renderApp();
+
+      try {
+        const result = await scrapeMall(mall.url);
+        if (result && result.imageUrls.length > 0) {
+          const newFirst = result.imageUrls[0];
+          const prevFirst = mall.lastKnownFirstImageUrl;
+          if (prevFirst && prevFirst !== newFirst) {
+            mall.hasNew = true;
+          }
+          mall.lastKnownFirstImageUrl = newFirst;
+          mall.imageUrls = result.imageUrls;
+          if (result.title) mall.title = result.title;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        mall.isLoading = false;
+        saveMalls(malls);
+        renderApp();
+      }
+    }
+
+    function handleDeleteMall(index) {
+      const removed = malls[index];
+      if (!confirm(`'${removed.title}' 쇼핑몰을 목록에서 삭제하시겠습니까?`)) return;
+      malls.splice(index, 1);
+      saveMalls(malls);
+      renderApp();
+    }
+
+    function resetToPresets() {
+      malls = JSON.parse(JSON.stringify(DEFAULT_PRESETS));
+      saveMalls(malls);
+      renderApp();
+    }
+
+    // --- 7. Modal & Carousel Logic ---
+    function openPreviewModal(mall) {
+      currentPreviewMall = mall;
+      currentSlideIndex = 0;
+
+      document.getElementById('modalMallTitle').textContent = mall.title;
+      document.getElementById('modalMallUrl').textContent = mall.url;
+
+      const track = document.getElementById('carouselTrack');
+      const dots = document.getElementById('carouselDots');
+      const images = mall.imageUrls || [];
+
+      if (images.length === 0) {
+        track.innerHTML = `
+          <div class="carousel-slide" style="flex-direction: column; color: #94a3b8;">
+            <i data-lucide="image-off" style="width: 48px; height: 48px; margin-bottom: 12px;"></i>
+            <div>표시할 이미지가 없습니다.</div>
+          </div>
+        `;
+        dots.innerHTML = '';
+        document.getElementById('modalPageCounter').textContent = '0 / 0';
+      } else {
+        track.innerHTML = images.map(img => `
+          <div class="carousel-slide">
+            <img src="${img}" alt="스타일 프리뷰" onerror="this.src='https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80'">
+          </div>
+        `).join('');
+
+        dots.innerHTML = images.map((_, i) => `
+          <div class="dot ${i === 0 ? 'active' : ''}"></div>
+        `).join('');
+
+        updateCarouselUI();
+      }
+
+      document.getElementById('previewModal').classList.add('active');
+      lucide.createIcons();
+    }
+
+    function updateCarouselUI() {
+      if (!currentPreviewMall) return;
+      const images = currentPreviewMall.imageUrls || [];
+      const total = images.length;
+      if (total === 0) return;
+
+      const track = document.getElementById('carouselTrack');
+      track.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
+
+      document.getElementById('modalPageCounter').textContent = `${currentSlideIndex + 1} / ${total}`;
+
+      const dots = document.querySelectorAll('.carousel-dots .dot');
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === currentSlideIndex);
+      });
+    }
+
+    document.getElementById('btnCarouselPrev').addEventListener('click', () => {
+      if (!currentPreviewMall) return;
+      const total = (currentPreviewMall.imageUrls || []).length;
+      if (total <= 1) return;
+      currentSlideIndex = (currentSlideIndex - 1 + total) % total;
+      updateCarouselUI();
+    });
+
+    document.getElementById('btnCarouselNext').addEventListener('click', () => {
+      if (!currentPreviewMall) return;
+      const total = (currentPreviewMall.imageUrls || []).length;
+      if (total <= 1) return;
+      currentSlideIndex = (currentSlideIndex + 1) % total;
+      updateCarouselUI();
+    });
+
+    document.getElementById('btnClosePreview').addEventListener('click', () => {
+      document.getElementById('previewModal').classList.remove('active');
+    });
+
+    document.getElementById('previewModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('previewModal')) {
+        document.getElementById('previewModal').classList.remove('active');
+      }
+    });
+
+    document.getElementById('btnOpenNaverApp').addEventListener('click', () => {
+      if (currentPreviewMall) {
+        document.getElementById('previewModal').classList.remove('active');
+        openMallInNaverApp(currentPreviewMall.url);
+      }
+    });
+
+    // --- 8. Add Mall Modal Logic ---
+    function openAddModal() {
+      document.getElementById('inputMallUrl').value = '';
+      document.getElementById('inputMallTitle').value = '';
+      document.getElementById('addMallModal').classList.add('active');
+      setTimeout(() => document.getElementById('inputMallUrl').focus(), 150);
+    }
+
+    document.getElementById('btnAddHeader').addEventListener('click', openAddModal);
+    document.getElementById('btnFabAdd').addEventListener('click', openAddModal);
+
+    document.getElementById('btnCloseAddModal').addEventListener('click', () => {
+      document.getElementById('addMallModal').classList.remove('active');
+    });
+
+    document.getElementById('btnCancelAdd').addEventListener('click', () => {
+      document.getElementById('addMallModal').classList.remove('active');
+    });
+
+    document.getElementById('addMallModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('addMallModal')) {
+        document.getElementById('addMallModal').classList.remove('active');
+      }
+    });
+
+    document.getElementById('formAddMall').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const urlInput = document.getElementById('inputMallUrl').value.trim();
+      const customTitle = document.getElementById('inputMallTitle').value.trim();
+      if (!urlInput) return;
+
+      const submitBtn = document.getElementById('btnSubmitAdd');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '분석 중...';
+
+      try {
+        const scrapeResult = await scrapeMall(urlInput);
+        const newMall = {
+          id: 'mall_' + Date.now(),
+          title: customTitle || scrapeResult.title || new URL(urlInput).hostname,
+          url: urlInput,
+          imageUrls: scrapeResult.imageUrls,
+          hasNew: true,
+          lastKnownFirstImageUrl: scrapeResult.imageUrls[0] || null
+        };
+
+        malls.unshift(newMall);
+        saveMalls(malls);
+        document.getElementById('addMallModal').classList.remove('active');
+        renderApp();
+      } catch (err) {
+        alert('쇼핑몰을 추가하는 중 오류가 발생했습니다.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '추가하기';
+      }
+    });
+
+    // --- 9. Background Auto-Refresh on Startup ---
+    async function runBackgroundAutoRefresh() {
+      const statusEl = document.getElementById('statusRefreshing');
+      if (malls.length === 0) return;
+
+      statusEl.style.display = 'inline-flex';
+
+      for (let i = 0; i < malls.length; i++) {
+        const mall = malls[i];
+        try {
+          const res = await scrapeMall(mall.url);
+          if (res && res.imageUrls.length > 0) {
+            const newFirst = res.imageUrls[0];
+            const prevFirst = mall.lastKnownFirstImageUrl;
+            if (prevFirst && prevFirst !== newFirst) {
+              mall.hasNew = true;
             }
-          </div>
-        </div>
-      `).join('');
+            mall.lastKnownFirstImageUrl = newFirst;
+            mall.imageUrls = res.imageUrls;
+            if (res.title) mall.title = res.title;
+          }
+        } catch (_) {}
+      }
+
+      saveMalls(malls);
+      renderApp();
+      statusEl.style.display = 'none';
     }
 
-    // 프리뷰 모달 열기
-    function openPreview(id) {
-      const shop = shops.find(s => s.id === id);
-      if (!shop) return;
-      clearNewBadge(id);
-
-      document.getElementById('modalTitle').innerText = shop.name;
-      const slider = document.getElementById('modalSlider');
-      slider.innerHTML = shop.images.map(img => `<img src="${img}">`).join('');
-      
-      const btn = document.getElementById('modalNaverBtn');
-      btn.onclick = () => {
-        closeModal();
-        openNaver(shop.url, shop.id);
-      };
-
-      document.getElementById('previewModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('previewModal').style.display = 'none';
-    }
+    // --- 10. App Initialization ---
+    window.addEventListener('DOMContentLoaded', () => {
+      malls = loadMalls();
+      renderApp();
+      runBackgroundAutoRefresh();
+    });
   </script>
 </body>
 </html>
