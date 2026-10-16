@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <!-- 쇼핑몰 외부 핫링크(403) 차단 방지 -->
   <meta name="referrer" content="no-referrer">
   <title>StylePick - 쇼핑몰 스타일 프리뷰</title>
   
@@ -184,7 +183,7 @@
     .card-actions {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
       flex-shrink: 0;
     }
 
@@ -199,6 +198,12 @@
       justify-content: center;
       border-radius: 6px;
       color: var(--color-text-sub);
+      transition: background-color 0.15s, color 0.15s;
+    }
+
+    .btn-action-icon:hover {
+      background-color: #f1f5f9;
+      color: var(--color-text);
     }
 
     .btn-action-icon.delete:hover {
@@ -210,7 +215,7 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       cursor: pointer;
     }
 
@@ -231,16 +236,19 @@
       display: block;
     }
 
+    /* Card Bottom: Edit Button */
     .card-bottom {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 8px;
     }
 
-    .btn-preview {
+    .btn-edit {
       background: none;
       border: 1px solid #cbd5e1;
-      color: #334155;
+      color: #475569;
       font-size: 12px;
       font-weight: 600;
       padding: 5px 12px;
@@ -249,6 +257,13 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .btn-edit:hover {
+      background-color: #f8fafc;
+      border-color: #94a3b8;
+      color: var(--color-text);
     }
 
     /* FAB */
@@ -277,7 +292,7 @@
       }
     }
 
-    /* Modal */
+    /* Modal Sheet */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -302,6 +317,12 @@
       max-height: 85vh;
       display: flex;
       flex-direction: column;
+      animation: slideUp 0.2s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
     }
 
     .modal-handle {
@@ -319,55 +340,6 @@
       margin-bottom: 14px;
     }
 
-    .carousel-container {
-      position: relative;
-      width: 100%;
-      height: 360px;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
-
-    .carousel-track {
-      display: flex;
-      width: 100%;
-      height: 100%;
-      transition: transform 0.2s ease-out;
-    }
-
-    .carousel-slide {
-      min-width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .carousel-slide img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .btn-naver-open {
-      background-color: var(--color-primary);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
     .form-group {
       margin-bottom: 14px;
     }
@@ -377,6 +349,7 @@
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 6px;
+      color: var(--color-text);
     }
 
     .form-control {
@@ -386,6 +359,11 @@
       border-radius: 8px;
       font-size: 14px;
       outline: none;
+      font-family: inherit;
+    }
+
+    .form-control:focus {
+      border-color: var(--color-primary);
     }
 
     .btn-dialog-submit {
@@ -434,26 +412,6 @@
     </button>
   </div>
 
-  <!-- Preview Modal -->
-  <div class="modal-overlay" id="previewModal">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <div class="modal-header">
-        <div>
-          <h3 id="modalMallTitle" style="font-size: 16px; font-weight: 700;"></h3>
-          <div id="modalMallUrl" style="font-size: 12px; color: #64748b;"></div>
-        </div>
-        <button style="background:none; border:none; cursor:pointer;" id="btnClosePreview"><i data-lucide="x"></i></button>
-      </div>
-
-      <div class="carousel-container">
-        <div class="carousel-track" id="carouselTrack"></div>
-      </div>
-
-      <button class="btn-naver-open" id="btnOpenNaverApp">네이버 앱으로 쇼핑몰 이동</button>
-    </div>
-  </div>
-
   <!-- Add Modal -->
   <div class="modal-overlay" id="addMallModal">
     <div class="modal-sheet">
@@ -465,27 +423,48 @@
       <form id="formAddMall">
         <div class="form-group">
           <label>쇼핑몰 웹사이트 주소</label>
-          <input type="text" id="inputMallUrl" class="form-control" placeholder="예: nevy.co.kr 또는 https://..." required>
+          <input type="text" id="inputMallUrl" class="form-control" placeholder="예: https://..." required>
         </div>
         <button type="submit" class="btn-dialog-submit" id="btnSubmitAdd">추가 및 스타일 분석</button>
       </form>
     </div>
   </div>
 
+  <!-- Edit Modal (제목 및 링크 수정) -->
+  <div class="modal-overlay" id="editMallModal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h3 style="font-size: 17px; font-weight: 700;">쇼핑몰 정보 수정</h3>
+        <button style="background:none; border:none; cursor:pointer;" id="btnCloseEditModal"><i data-lucide="x"></i></button>
+      </div>
+      <form id="formEditMall">
+        <input type="hidden" id="editMallIdx">
+        <div class="form-group">
+          <label>쇼핑몰 이름 (표시 제목)</label>
+          <input type="text" id="editMallTitle" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>쇼핑몰 링크 (URL)</label>
+          <input type="text" id="editMallUrl" class="form-control" required>
+        </div>
+        <button type="submit" class="btn-dialog-submit" id="btnSubmitEdit">수정사항 저장</button>
+      </form>
+    </div>
+  </div>
+
   <script>
-    // 본인의 Cloudflare Worker 고유 주소 적용 완료
     const WORKER_URL = "https://stylepick-scraper.yersinia-j.workers.dev";
     const STORAGE_KEY = 'stylepick_malls_worker_v1';
 
     let malls = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    let currentMall = null;
 
     function saveMalls() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(malls));
       renderApp();
     }
 
-    // Cloudflare Worker를 통한 안정적인 스크래핑
+    // Worker를 통한 쇼핑몰 데이터 스크래핑
     async function scrapeShop(targetUrl) {
       let cleanUrl = targetUrl.trim();
       if (!cleanUrl.startsWith('http')) cleanUrl = 'https://' + cleanUrl;
@@ -522,6 +501,52 @@
       }, 1000);
     }
 
+    // 개별 쇼핑몰 새로고침 기능
+    async function refreshMall(idx) {
+      const mall = malls[idx];
+      if (!mall || mall.isRefreshing) return;
+
+      mall.isRefreshing = true;
+      renderApp();
+
+      try {
+        const data = await scrapeShop(mall.url);
+        if (data.imageUrls && data.imageUrls.length > 0) {
+          // 기존 첫 번째 이미지와 달라졌는지 확인
+          if (mall.imageUrls && mall.imageUrls[0] && mall.imageUrls[0] !== data.imageUrls[0]) {
+            mall.hasNew = true;
+          }
+          mall.imageUrls = data.imageUrls;
+          if (data.title && (!mall.title || mall.title.includes('.'))) {
+            mall.title = data.title;
+          }
+        }
+      } catch (e) {
+        console.error("Refresh failed:", e);
+      } finally {
+        mall.isRefreshing = false;
+        saveMalls();
+      }
+    }
+
+    // 개별 쇼핑몰 삭제 기능
+    function deleteMall(idx) {
+      if (!confirm("해당 쇼핑몰을 목록에서 삭제하시겠습니까?")) return;
+      malls.splice(idx, 1);
+      saveMalls();
+    }
+
+    // Edit 모달 열기
+    function openEditModal(idx) {
+      const mall = malls[idx];
+      if (!mall) return;
+
+      document.getElementById('editMallIdx').value = idx;
+      document.getElementById('editMallTitle').value = mall.title;
+      document.getElementById('editMallUrl').value = mall.url;
+      document.getElementById('editMallModal').classList.add('active');
+    }
+
     function renderApp() {
       document.getElementById('txtMallCount').textContent = malls.length;
       const badgeNewCountEl = document.getElementById('badgeNewCount');
@@ -543,6 +568,7 @@
 
       container.innerHTML = malls.map((m, idx) => `
         <div class="mall-card ${m.hasNew ? 'has-new' : ''}">
+          <!-- 상단: 이름, 배지, 새로고침 및 삭제 아이콘 -->
           <div class="card-header">
             <div class="card-info" onclick="openNaver('${m.url}', '${m.id}')">
               ${m.hasNew ? '<span class="badge-new">NEW</span>' : ''}
@@ -552,12 +578,16 @@
               </div>
             </div>
             <div class="card-actions">
+              <button class="btn-action-icon" title="새로고침" onclick="refreshMall(${idx})">
+                <i data-lucide="${m.isRefreshing ? 'loader-2' : 'rotate-cw'}" class="${m.isRefreshing ? 'spin' : ''}" style="width:16px;height:16px;"></i>
+              </button>
               <button class="btn-action-icon delete" title="삭제" onclick="deleteMall(${idx})">
                 <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
               </button>
             </div>
           </div>
 
+          <!-- 중앙: 4개 썸네일 그리드 (터치 시 네이버 앱 이동) -->
           <div class="thumbnails-grid" onclick="openNaver('${m.url}', '${m.id}')">
             ${(m.imageUrls && m.imageUrls.length > 0)
               ? m.imageUrls.map(img => `
@@ -569,37 +599,16 @@
             }
           </div>
 
+          <!-- 하단: Edit 버튼 -->
           <div class="card-bottom">
-            <button class="btn-preview" onclick="openPreview(${idx})">
-              <i data-lucide="eye" style="width:13px;height:13px;"></i> [프리뷰]
+            <button class="btn-edit" onclick="openEditModal(${idx})">
+              <i data-lucide="pencil" style="width:12px;height:12px;"></i> Edit
             </button>
           </div>
         </div>
       `).join('');
 
       lucide.createIcons();
-    }
-
-    function deleteMall(idx) {
-      if (!confirm("해당 쇼핑몰을 목록에서 삭제하시겠습니까?")) return;
-      malls.splice(idx, 1);
-      saveMalls();
-    }
-
-    function openPreview(idx) {
-      currentMall = malls[idx];
-      currentMall.hasNew = false;
-      saveMalls();
-
-      document.getElementById('modalMallTitle').textContent = currentMall.title;
-      document.getElementById('modalMallUrl').textContent = currentMall.url;
-      
-      const track = document.getElementById('carouselTrack');
-      track.innerHTML = (currentMall.imageUrls || []).map(img => `
-        <div class="carousel-slide"><img src="${img}" referrerpolicy="no-referrer"></div>
-      `).join('');
-
-      document.getElementById('previewModal').classList.add('active');
     }
 
     // Modal Control Events
@@ -609,17 +618,11 @@
     document.getElementById('btnCloseAddModal').onclick = () => {
       document.getElementById('addMallModal').classList.remove('active');
     };
-    document.getElementById('btnClosePreview').onclick = () => {
-      document.getElementById('previewModal').classList.remove('active');
-    };
-    document.getElementById('btnOpenNaverApp').onclick = () => {
-      if (currentMall) {
-        document.getElementById('previewModal').classList.remove('active');
-        openNaver(currentMall.url, currentMall.id);
-      }
+    document.getElementById('btnCloseEditModal').onclick = () => {
+      document.getElementById('editMallModal').classList.remove('active');
     };
 
-    // Form Submit
+    // 추가 폼 서밋
     document.getElementById('formAddMall').onsubmit = async (e) => {
       e.preventDefault();
       const input = document.getElementById('inputMallUrl');
@@ -643,6 +646,38 @@
       submitBtn.textContent = '추가 및 스타일 분석';
       document.getElementById('addMallModal').classList.remove('active');
       input.value = '';
+    };
+
+    // 수정 폼 서밋
+    document.getElementById('formEditMall').onsubmit = async (e) => {
+      e.preventDefault();
+      const idx = parseInt(document.getElementById('editMallIdx').value, 10);
+      const newTitle = document.getElementById('editMallTitle').value.trim();
+      const newUrl = document.getElementById('editMallUrl').value.trim();
+      const submitBtn = document.getElementById('btnSubmitEdit');
+
+      if (isNaN(idx) || !malls[idx]) return;
+
+      const mall = malls[idx];
+      const isUrlChanged = (mall.url !== newUrl);
+
+      mall.title = newTitle;
+      mall.url = newUrl;
+
+      // 링크 URL이 변경된 경우 새로운 이미지로 다시 스크래핑
+      if (isUrlChanged) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '새 주소 분석 중...';
+        const data = await scrapeShop(newUrl);
+        if (data.imageUrls && data.imageUrls.length > 0) {
+          mall.imageUrls = data.imageUrls;
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = '수정사항 저장';
+      }
+
+      saveMalls();
+      document.getElementById('editMallModal').classList.remove('active');
     };
 
     document.addEventListener('DOMContentLoaded', () => {
